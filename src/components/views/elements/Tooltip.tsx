@@ -17,7 +17,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import React, { CSSProperties } from 'react';
+import React, { CSSProperties, createRef } from 'react';
 import ReactDOM from 'react-dom';
 import classNames from 'classnames';
 
@@ -55,10 +55,71 @@ export interface ITooltipProps {
         maxParentWidth?: number;
 }
 
+interface IVisibleTooltipProps {
+    tooltipClasses?: string;
+    label: React.ReactNode;
+    alignment?: Alignment;
+    style: React.CSSProperties;
+    onOverrideTop: (top: number) => void;
+    parentHeight: number;
+}
+
+/**
+ * Separate componet for the visible part of the tooltip.
+ * Used to tweak positioning after render.
+ */
+class VisibleTooltip extends React.PureComponent<IVisibleTooltipProps> {
+    private elementRef = createRef<HTMLDivElement>();
+
+    public componentDidMount() {
+        this.adjusttop();
+    }
+
+    public componentDidUpdate(): void {
+        this.adjusttop();
+    }
+
+    /**
+     * Adjust top position to prevent tooltip being cut off.
+     */
+    private adjusttop() {
+        if (!this.elementRef.current) {
+            return;
+        }
+
+        if (![Alignment.Left, Alignment.Right, Alignment.Natural].includes(this.props.alignment)) {
+            return;
+        }
+
+        const padding = 5;
+        const tooltipBottom = this.elementRef.current.getBoundingClientRect().bottom;
+        const tooltipHeight = this.elementRef.current.getBoundingClientRect().height;
+        const overflow = tooltipBottom - UIStore.instance.windowHeight;
+
+        if (overflow > 0 && overflow - padding <= tooltipHeight) {
+            // override if cut off and not entirely scrolled below
+            this.props.onOverrideTop(+this.props.style.top - overflow - padding);
+        }
+    }
+
+    public render() {
+        return <div
+            ref={this.elementRef}
+            className={this.props.tooltipClasses}
+            style={this.props.style}
+        >
+            <div className="mx_Tooltip_chevron" />
+            { this.props.label }
+        </div>;
+    }
+}
+
 @replaceableComponent("views.elements.Tooltip")
 export default class Tooltip extends React.Component<ITooltipProps> {
     private tooltipContainer: HTMLElement;
     private parent: Element;
+    private visibleTooltipTopOverride: number;
+    private onWindowScroll: () => void;
 
     // XXX: This is because some components (Field) are unable to `import` the Tooltip class,
     // so we expose the Alignment options off of us statically.
@@ -70,12 +131,26 @@ export default class Tooltip extends React.Component<ITooltipProps> {
         alignment: Alignment.Natural,
     };
 
+    private onVisibleTooltipTopOverride(top: number) {
+        const prevTopOverride = this.visibleTooltipTopOverride;
+        this.visibleTooltipTopOverride = top;
+
+        if (prevTopOverride !== top) {
+            this.renderTooltip();
+        }
+    }
+
     // Create a wrapper for the tooltip outside the parent and attach it to the body element
     public componentDidMount() {
         this.tooltipContainer = document.createElement("div");
         this.tooltipContainer.className = "mx_Tooltip_wrapper";
         document.body.appendChild(this.tooltipContainer);
-        window.addEventListener('scroll', this.renderTooltip, {
+
+        this.onWindowScroll = () => {
+            this.visibleTooltipTopOverride = null;
+            this.renderTooltip();
+        };
+        window.addEventListener('scroll', this.onWindowScroll, {
             passive: true,
             capture: true,
         });
@@ -93,7 +168,7 @@ export default class Tooltip extends React.Component<ITooltipProps> {
     public componentWillUnmount() {
         ReactDOM.unmountComponentAtNode(this.tooltipContainer);
         document.body.removeChild(this.tooltipContainer);
-        window.removeEventListener('scroll', this.renderTooltip, {
+        window.removeEventListener('scroll', this.onWindowScroll, {
             capture: true,
         });
     }
@@ -153,6 +228,10 @@ export default class Tooltip extends React.Component<ITooltipProps> {
                 style.transform = "translate(-50%)";
         }
 
+        if (this.visibleTooltipTopOverride) {
+            style.top = this.visibleTooltipTopOverride;
+        }
+
         return style;
     }
 
@@ -172,15 +251,18 @@ export default class Tooltip extends React.Component<ITooltipProps> {
             "mx_Tooltip_invisible": !this.props.visible,
         });
 
-        const tooltip = (
-            <div className={tooltipClasses} style={style}>
-                <div className="mx_Tooltip_chevron" />
-                { this.props.label }
-            </div>
-        );
-
         // Render the tooltip manually, as we wish it not to be rendered within the parent
-        ReactDOM.render<Element>(tooltip, this.tooltipContainer);
+        ReactDOM.render<Element>(
+            <VisibleTooltip
+                label={this.props.label}
+                alignment={this.props.alignment}
+                tooltipClasses={tooltipClasses}
+                style={style}
+                onOverrideTop={(top: number) => this.onVisibleTooltipTopOverride(top)}
+                parentHeight={this.parent.getBoundingClientRect().height}
+            />,
+            this.tooltipContainer,
+        );
     };
 
     public render() {
