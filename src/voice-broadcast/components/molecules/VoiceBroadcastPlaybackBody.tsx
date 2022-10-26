@@ -15,11 +15,13 @@ limitations under the License.
 */
 
 import React from "react";
+import classNames from "classnames";
 
 import {
     VoiceBroadcastControl,
     VoiceBroadcastHeader,
     VoiceBroadcastPlayback,
+    VoiceBroadcastPlaybacksStore,
     VoiceBroadcastPlaybackState,
 } from "../..";
 import Spinner from "../../../components/views/elements/Spinner";
@@ -30,10 +32,12 @@ import { _t } from "../../../languageHandler";
 
 interface VoiceBroadcastPlaybackBodyProps {
     playback: VoiceBroadcastPlayback;
+    pip?: boolean;
 }
 
 export const VoiceBroadcastPlaybackBody: React.FC<VoiceBroadcastPlaybackBodyProps> = ({
     playback,
+    pip = false,
 }) => {
     const {
         live,
@@ -66,22 +70,37 @@ export const VoiceBroadcastPlaybackBody: React.FC<VoiceBroadcastPlaybackBodyProp
                 break;
         }
 
+        const toggleAndSetCurrent = () => {
+            toggle();
+            VoiceBroadcastPlaybacksStore.instance().setCurrent(playback);
+        };
+
         control = <VoiceBroadcastControl
             label={controlLabel}
             icon={controlIcon}
-            onClick={toggle}
+            onClick={toggleAndSetCurrent}
         />;
     }
 
+    const classes = classNames({
+        mx_VoiceBroadcastBody: true,
+        ["mx_VoiceBroadcastBody--pip"]: pip,
+    });
+
+    const divider = pip
+        ? <div className="mx_VoiceBroadcastBody_divider" />
+        : null;
+
     return (
-        <div className="mx_VoiceBroadcastPlaybackBody">
+        <div className={classes}>
             <VoiceBroadcastHeader
                 live={live}
                 sender={sender}
                 room={room}
                 showBroadcast={true}
             />
-            <div className="mx_VoiceBroadcastPlaybackBody_controls">
+            { divider }
+            <div className="mx_VoiceBroadcastBody_controls">
                 { control }
             </div>
         </div>

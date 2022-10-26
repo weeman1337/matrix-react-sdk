@@ -16,16 +16,12 @@ limitations under the License.
 
 import { MatrixClient, MatrixEvent, Room } from "matrix-js-sdk/src/matrix";
 
-import { VoiceBroadcastInfoState, VoiceBroadcastRecording } from "..";
+import { VoiceBroadcastInfoEventType, VoiceBroadcastInfoState, VoiceBroadcastRecording } from "..";
 import { VoiceBroadcastRecordingsStore } from "../stores/VoiceBroadcastRecordingsStore";
 
-export const resumeVoiceBroadcastInRoom = (latestInfoEvent: MatrixEvent, room: Room, client: MatrixClient) => {
-    // voice broadcasts are based on their started event, try to find it
-    const infoEvent = latestInfoEvent.getContent()?.state === VoiceBroadcastInfoState.Started
-        ? latestInfoEvent
-        : room.findEventById(latestInfoEvent.getRelation()?.event_id);
+export const resumeVoiceBroadcast = (infoEvent: MatrixEvent) => {
 
-    if (!infoEvent) {
+    if (infoEvent.getType() !== VoiceBroadcastInfoEventType || infoEvent.getContent()?.state !== VoiceBroadcastInfoState.Started) {
         return;
     }
 

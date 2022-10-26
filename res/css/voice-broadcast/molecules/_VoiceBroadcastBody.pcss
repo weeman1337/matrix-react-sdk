@@ -14,14 +14,26 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-.mx_VoiceBroadcastPlaybackBody {
+.mx_VoiceBroadcastBody {
     background-color: $quinary-content;
     border-radius: 8px;
     display: inline-block;
     padding: 12px;
 }
 
-.mx_VoiceBroadcastPlaybackBody_controls {
+.mx_VoiceBroadcastBody--pip {
+    background-color: $system;
+    box-shadow: 0 2px 8px 0 #0000004a;
+}
+
+.mx_VoiceBroadcastBody_divider {
+    background-color: $quinary-content;
+    border: 0;
+    height: 1px;
+    margin: $spacing-12 0;
+}
+
+.mx_VoiceBroadcastBody_controls {
     display: flex;
-    justify-content: center;
+    justify-content: space-around;
 }

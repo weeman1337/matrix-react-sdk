@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import React, { createRef, useState } from 'react';
+import React, { createRef } from 'react';
 import { CallEvent, CallState, MatrixCall } from 'matrix-js-sdk/src/webrtc/call';
 import { logger } from "matrix-js-sdk/src/logger";
 import classNames from 'classnames';
@@ -36,12 +36,15 @@ import { UPDATE_EVENT } from '../../../stores/AsyncStore';
 import { SdkContextClass } from '../../../contexts/SDKContext';
 import { CallStore } from "../../../stores/CallStore";
 import {
+    useCurrentVoiceBroadcastPlayback,
+    useCurrentVoiceBroadcastRecording,
+    VoiceBroadcastPlayback,
+    VoiceBroadcastPlaybackBody,
+    VoiceBroadcastPlaybacksStore,
     VoiceBroadcastRecording,
     VoiceBroadcastRecordingPip,
-    VoiceBroadcastRecordingsStore,
-    VoiceBroadcastRecordingsStoreEvent,
 } from '../../../voice-broadcast';
-import { useTypedEventEmitter } from '../../../hooks/useEventEmitter';
+import { onPipViewRoomViewStoreUpdate } from '../../../voice-broadcast/utils/onPipViewRoomViewStoreUpdate';
 
 const SHOW_CALL_IN_STATES = [
     CallState.Connected,
@@ -53,6 +56,7 @@ const SHOW_CALL_IN_STATES = [
 ];
 
 interface IProps {
+    voiceBroadcastPlayback?: VoiceBroadcastPlayback;
     voiceBroadcastRecording?: VoiceBroadcastRecording;
 }
 
@@ -73,6 +77,11 @@ interface IState {
 
     moving: boolean;
 }
+
+type CreatePipContent = (object: {
+    onStartMoving?: (event: React.MouseEvent<Element, MouseEvent>) => void;
+    onResize?: (event: Event) => void;
+}) => JSX.Element;
 
 const getRoomAndAppForWidget = (widgetId: string, roomId: string): [Room, IApp] => {
     if (!widgetId) return;
@@ -186,18 +195,21 @@ class PipView extends React.Component<IProps, IState> {
     private onMove = () => this.movePersistedElement.current?.();
 
     private onRoomViewStoreUpdate = () => {
+        const client = MatrixClientPeg.get();
+
         const newRoomId = SdkContextClass.instance.roomViewStore.getRoomId();
         const oldRoomId = this.state.viewedRoomId;
         if (newRoomId === oldRoomId) return;
         // The WidgetLayoutStore observer always tracks the currently viewed Room,
         // so we don't end up with multiple observers and know what observer to remove on unmount
-        const oldRoom = MatrixClientPeg.get()?.getRoom(oldRoomId);
+        const oldRoom = client?.getRoom(oldRoomId);
         if (oldRoom) {
             WidgetLayoutStore.instance.off(WidgetLayoutStore.emissionForRoom(oldRoom), this.updateCalls);
         }
-        const newRoom = MatrixClientPeg.get()?.getRoom(newRoomId);
+        const newRoom = client?.getRoom(newRoomId);
         if (newRoom) {
             WidgetLayoutStore.instance.on(WidgetLayoutStore.emissionForRoom(newRoom), this.updateCalls);
+            onPipViewRoomViewStoreUpdate(newRoom, client, VoiceBroadcastPlaybacksStore.instance());
         }
         if (!newRoomId) return;
 
@@ -316,9 +328,34 @@ class PipView extends React.Component<IProps, IState> {
         this.setState({ showWidgetInPip, persistentWidgetId, persistentRoomId });
     }
 
+    private createCreateVoiceBroadcastRecordingPipContent(): CreatePipContent {
+        return ({ onStartMoving }) => <div onMouseDown={onStartMoving}>
+            <VoiceBroadcastRecordingPip
+                recording={this.props.voiceBroadcastRecording}
+            />
+        </div>;
+    }
+
+    private createCreateVoiceBroadcastPlaybackPipContent(): CreatePipContent {
+        return ({ onStartMoving }) => <div onMouseDown={onStartMoving}>
+            <VoiceBroadcastPlaybackBody
+                playback={this.props.voiceBroadcastPlayback}
+                pip={true}
+            />
+        </div>;
+    }
+
     public render() {
         const pipMode = true;
-        let pipContent;
+        let pipContent: CreatePipContent;
+
+        if (this.props.voiceBroadcastRecording) {
+            pipContent = this.createCreateVoiceBroadcastRecordingPipContent();
+        }
+
+        if (this.props.voiceBroadcastPlayback) {
+            pipContent = this.createCreateVoiceBroadcastPlaybackPipContent();
+        }
 
         if (this.state.primaryCall) {
             pipContent = ({ onStartMoving, onResize }) =>
@@ -361,14 +398,6 @@ class PipView extends React.Component<IProps, IState> {
                 </div>;
         }
 
-        if (this.props.voiceBroadcastRecording) {
-            pipContent = ({ onStartMoving }) => <div onMouseDown={onStartMoving}>
-                <VoiceBroadcastRecordingPip
-                    recording={this.props.voiceBroadcastRecording}
-                />
-            </div>;
-        }
-
         if (!!pipContent) {
             return <PictureInPictureDragger
                 className="mx_LegacyCallPreview"
@@ -385,22 +414,11 @@ class PipView extends React.Component<IProps, IState> {
 }
 
 const PipViewHOC: React.FC<IProps> = (props) => {
-    // TODO Michael W: extract to custom hook
-
-    const voiceBroadcastRecordingsStore = VoiceBroadcastRecordingsStore.instance();
-    const [voiceBroadcastRecording, setVoiceBroadcastRecording] = useState(
-        voiceBroadcastRecordingsStore.getCurrent(),
-    );
-
-    useTypedEventEmitter(
-        voiceBroadcastRecordingsStore,
-        VoiceBroadcastRecordingsStoreEvent.CurrentChanged,
-        (recording: VoiceBroadcastRecording) => {
-            setVoiceBroadcastRecording(recording);
-        },
-    );
+    const { voiceBroadcastPlayback } = useCurrentVoiceBroadcastPlayback();
+    const { voiceBroadcastRecording } = useCurrentVoiceBroadcastRecording();
 
     return <PipView
+        voiceBroadcastPlayback={voiceBroadcastPlayback}
         voiceBroadcastRecording={voiceBroadcastRecording}
         {...props}
     />;

@@ -17,7 +17,7 @@ limitations under the License.
 import { ClientEvent, MatrixClient, Room } from "matrix-js-sdk/src/matrix";
 
 import { IDestroyable } from "../../utils/IDestroyable";
-import { findRoomLiveVoiceBroadcastFromUserAndDevice } from "./findRoomLiveVoiceBroadcastFromUserAndDevice";
+import { findLiveBroadcastInfoInRoom } from "./findLiveBroadcastInfoInRoom";
 import { resumeVoiceBroadcastInRoom } from "./resumeVoiceBroadcastInRoom";
 
 export class VoiceBroadcastResumer implements IDestroyable {
@@ -38,7 +38,7 @@ export class VoiceBroadcastResumer implements IDestroyable {
 
         this.seenRooms.add(room.roomId);
 
-        const infoEvent = findRoomLiveVoiceBroadcastFromUserAndDevice(
+        const infoEvent = findLiveBroadcastInfoInRoom(
             room,
             this.userId,
             this.deviceId,

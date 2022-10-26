@@ -14,22 +14,19 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-.mx_VoiceBroadcastRecordingPip {
-    background-color: $system;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px 0 #0000004a;
-    display: inline-block;
-    padding: $spacing-12;
-}
+import { MatrixClient, Room } from "matrix-js-sdk/src/matrix";
 
-.mx_VoiceBroadcastRecordingPip_divider {
-    background-color: $quinary-content;
-    border: 0;
-    height: 1px;
-    margin: $spacing-12 0;
-}
+import { findLiveBroadcastInfoInRoom, VoiceBroadcastPlaybacksStore } from "..";
 
-.mx_VoiceBroadcastRecordingPip_controls {
-    display: flex;
-    justify-content: space-around;
-}
+export const onPipViewRoomViewStoreUpdate = (
+    room: Room,
+    client: MatrixClient,
+    playbacksStore: VoiceBroadcastPlaybacksStore,
+) => {
+    const liveBroadcastInfoEvent = findLiveBroadcastInfoInRoom(room);
+
+    if (client && liveBroadcastInfoEvent) {
+        const voiceBroadcastPlayback = playbacksStore.getByInfoEvent(liveBroadcastInfoEvent, client);
+        playbacksStore.setCurrent(voiceBroadcastPlayback);
+    }
+};
