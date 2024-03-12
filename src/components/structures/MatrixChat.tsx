@@ -146,6 +146,7 @@ import { checkSessionLockFree, getSessionLock } from "../../utils/SessionLock";
 import { SessionLockStolenView } from "./auth/SessionLockStolenView";
 import { ConfirmSessionLockTheftView } from "./auth/ConfirmSessionLockTheftView";
 import { LoginSplashView } from "./auth/LoginSplashView";
+import { BoardsView } from "./BoardsView";
 
 // legacy export
 export { default as Views } from "../../Views";
@@ -2040,6 +2041,8 @@ export default class MatrixChat extends React.PureComponent<IProps, IState> {
                         currentRoomId={this.state.currentRoomId}
                     />
                 );
+
+                view = <BoardsView />;
             } else {
                 // we think we are logged in, but are still waiting for the /sync to complete
                 // Suppress `InvalidStoreError`s here, since they have their own error dialog.

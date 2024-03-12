@@ -488,6 +488,7 @@ describe("WysiwygComposer", () => {
     describe("Keyboard navigation", () => {
         const { mockClient, defaultRoomContext, mockEvent, editorStateTransfer } = createMocks();
 
+        stubClient
         const customRender = (
             client = mockClient,
             roomContext = defaultRoomContext,

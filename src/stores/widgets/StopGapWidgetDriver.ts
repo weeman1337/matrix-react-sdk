@@ -194,6 +194,9 @@ export class StopGapWidgetDriver extends WidgetDriver {
         const diff = iterableDiff(requested, this.allowedCapabilities);
         const missing = new Set(diff.removed); // "removed" is "in A (requested) but not in B (allowed)"
         const allowedSoFar = new Set(this.allowedCapabilities);
+
+        return new Set([...missing, ...allowedSoFar]);
+
         getRememberedCapabilitiesForWidget(this.forWidget).forEach((cap) => {
             allowedSoFar.add(cap);
             missing.delete(cap);

@@ -1,0 +1,26 @@
+.nb-container {
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    padding: 0 32px 32px;
+}
+
+.nb-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.nb-list-item {
+    border: 1px solid var(--cpd-color-border-interactive-primary);
+    border-radius: 4px;
+    cursor: pointer;
+    padding: 16px;
+    width: 200px;
+}
+
+.nb-list-item:hover {
+    background-color: var(--cpd-color-bg-action-secondary-hovered);
+    border: 1px solid var(--cpd-color-border-interactive-hovered);
+}

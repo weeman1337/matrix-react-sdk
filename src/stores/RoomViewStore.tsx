@@ -697,6 +697,10 @@ export class RoomViewStore extends EventEmitter {
         return this.state.roomId;
     }
 
+    public setRoomId(roomId: string): void {
+        this.state.roomId = roomId;
+    }
+
     public getThreadId(): Optional<string> {
         return this.state.threadId;
     }

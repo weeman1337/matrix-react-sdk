@@ -100,6 +100,7 @@ interface IProps {
     // This is useful because: Widget B is sticky. Making widget A sticky will kill widget B immediately.
     // This promise allows to do Widget B related cleanup before Widget A becomes sticky. (e.g. hangup a Voip call)
     stickyPromise?: () => Promise<void>;
+    style?: React.CSSProperties;
 }
 
 interface IState {
@@ -774,7 +775,7 @@ export default class AppTile extends React.Component<IProps, IState> {
 
         return (
             <React.Fragment>
-                <div className={appTileClasses} id={this.props.app.id}>
+                <div className={appTileClasses} id={this.props.app.id} style={this.props.style}>
                     {this.props.showMenubar && (
                         <div className="mx_AppTileMenuBar">
                             <span
